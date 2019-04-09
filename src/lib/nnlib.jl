@@ -5,27 +5,28 @@ import NNlib: softmax, ∇softmax, logsoftmax, ∇logsoftmax, conv, maxpool, mea
 
 @adjoint logsoftmax(xs) = logsoftmax(xs), Δ -> (∇logsoftmax(Δ, xs),)
 
-@nograd NNlib.DenseConvDims, NNlib.DepthwiseConvDims, NNlib.PoolDims
 @adjoint NNlib.DenseConvDims(args...; kwargs...) = NNlib.DenseConvDims(args...; kwargs...), _ -> nothing
+@adjoint NNlib.DepthwiseConvDims(args...; kwargs...) = NNlib.DepthwiseConvDims(args...; kwargs...), _ -> nothing
+@adjoint NNlib.PoolDims(args...; kwargs...) = NNlib.PoolDims(args...; kwargs...), _ -> nothing
 
 @adjoint conv(x, w, cdims; kw...) =
   conv(x, w, cdims; kw...),
     Δ -> begin
        return (
-       NNlib.∇conv_data(Δ, w, cdims; kw...),
-       NNlib.∇conv_filter(x, Δ, cdims; kw...),
-       nothing,
-    )
+           NNlib.∇conv_data(Δ, w, cdims; kw...),
+           NNlib.∇conv_filter(x, Δ, cdims; kw...),
+           nothing,
+       )
    end
 
 @adjoint ∇conv_data(x, w, cdims; kw...) =
   ∇conv_data(x, w, cdims; kw...),
     Δ -> begin
        return (
-       NNlib.conv(Δ, w, cdims; kw...),
-       NNlib.∇conv_filter(x, Δ, cdims; kw...),
-       nothing,
-    )
+           NNlib.conv(Δ, w, cdims; kw...),
+           NNlib.∇conv_filter(Δ, x, cdims; kw...),
+           nothing,
+       )
    end
 
 @adjoint function maxpool(x, pdims; kw...)
